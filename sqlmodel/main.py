@@ -69,6 +69,7 @@ class FieldInfo(PydanticFieldInfo):
         primary_key = kwargs.pop("primary_key", False)
         nullable = kwargs.pop("nullable", Undefined)
         foreign_key = kwargs.pop("foreign_key", Undefined)
+        fk_kwargs = kwargs.pop("fk_kwargs", Undefined)
         index = kwargs.pop("index", Undefined)
         sa_column = kwargs.pop("sa_column", Undefined)
         sa_column_args = kwargs.pop("sa_column_args", Undefined)
@@ -88,6 +89,7 @@ class FieldInfo(PydanticFieldInfo):
         self.primary_key = primary_key
         self.nullable = nullable
         self.foreign_key = foreign_key
+        self.fk_kwargs = fk_kwargs
         self.index = index
         self.sa_column = sa_column
         self.sa_column_args = sa_column_args
@@ -433,7 +435,14 @@ def get_column_from_field(field: ModelField) -> Column:  # type: ignore
     args = []
     foreign_key = getattr(field.field_info, "foreign_key", None)
     if foreign_key:
-        args.append(ForeignKey(foreign_key))
+        fk_kwargs = getattr(field.field_info, "fk_kwargs", None)
+        if fk_kwargs:
+            if 'ondelete' in fk_kwargs:
+                args.append(ForeignKey(foreign_key, ondelete=fk_kwargs['ondelete']))
+            elif 'onupdate' in fk_kwargs:
+                args.append(ForeignKey(foreign_key, onupdate=fk_kwargs['onupdate']))
+        else:
+            args.append(ForeignKey(foreign_key))
     kwargs = {
         "primary_key": primary_key,
         "nullable": nullable,
